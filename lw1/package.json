@@ -1,0 +1,15 @@
+{
+  "name": "lw1",
+  "version": "1.0.0",
+  "description": "lab work 1",
+  "main": "Calculator.js",
+  "scripts": {
+    "dev": "npx tsc src/Calculator.ts && node src/Calculator.js"
+  },
+  "author": "Oleg Nechaev",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.5.3",
+    "typescript": "^5.5.4"
+  }
+}
