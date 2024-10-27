@@ -1,8 +1,8 @@
 const extractTokens = (inputString: string): string[] => {
     const chars = inputString.split('');
+    const tokens: string[] = [];
     let currentNumber = '';
-    let tokens: string[] = [];
-
+    
     chars.forEach((char, index) => {
         if (/\d/.test(char)) {
             currentNumber += char;
@@ -11,9 +11,11 @@ const extractTokens = (inputString: string): string[] => {
                 tokens.push(currentNumber);
                 currentNumber = '';
             }
-            if (/\s/.test(char)) {
+
+            if (char === " ") {
                 return;
             }
+            
             if (!/[()*/+\-]/.test(char)) {
                 throw new Error(`Недопустимый символ: ${char} на позиции ${index}`);
             }
@@ -28,32 +30,40 @@ const extractTokens = (inputString: string): string[] => {
     return tokens;
 }
 
-const prefixToPostfix = (tokens: string[]): string => {
-    let operatorStack: string[] = [];
-    let expressionStack: string[] = [];
+const processOperation = (operatorStack: string[], expressionStack: string[]) => {
+    const curOper = operatorStack.pop()!;
+    const operand1 = expressionStack.pop()!;
+    const operand2 = expressionStack.pop()!;
+    const newExpr = operand1 + " " + operand2 + " " + curOper;
+    expressionStack.push(newExpr);
+}
 
+const prefixToPostfix = (tokens: string[]): string => {
+    const operatorStack: string[] = [];
+    const expressionStack: string[] = [];
     tokens = tokens.reverse();
 
     let index: number = 0;
 
     tokens.forEach(token => {
-        if (Number(token)) {
+        if (!isNaN(parseInt(token))) {
             expressionStack.push(token);
-        } else if (token === ")") {
+            return;
+        } 
+        
+        if (token === ")") {
             operatorStack.push(token);
-        } else if (token === "(") {
+            return;
+        } 
+        
+        if (token === "(") {
             let curOper: string = "";
             while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== ")" ) {
-
                 if (expressionStack.length < 2) {
                     throw new Error(`Неправильное выражение: недостаточно операндов для операции на позиции ${tokens.length - index}`);
                 }
 
-                curOper = operatorStack.pop()!;
-                let operand1 = expressionStack.pop()!;
-                let operand2 = expressionStack.pop()!;
-                let newExpr = operand1 + " " + operand2 + " " + curOper;
-                expressionStack.push(newExpr);
+                processOperation(operatorStack, expressionStack);
             }
 
             if (operatorStack.length === 0) {
@@ -61,9 +71,10 @@ const prefixToPostfix = (tokens: string[]): string => {
             }
 
             operatorStack.pop();
-        } else {
-            operatorStack.push(token);
-        }
+            return;
+        } 
+        
+        operatorStack.push(token);
     });
     
     while (operatorStack.length > 0) {
@@ -71,11 +82,7 @@ const prefixToPostfix = (tokens: string[]): string => {
             throw new Error("Неправильное выражение: недостаточно операндов для операции в конце выражения");
         }
 
-        let curOper = operatorStack.pop()!;
-        let operand1 = expressionStack.pop()!;
-        let operand2 = expressionStack.pop()!;
-        let newExpr = operand1 + " " + operand2 + " " + curOper;
-        expressionStack.push(newExpr);
+        processOperation(operatorStack, expressionStack);
     }
 
     return expressionStack.pop()!;
@@ -100,24 +107,20 @@ const executeOperator = (num1: number, num2: number, oper: string): number => {
 }
 
 const calculatePostfix = (tokens: string[]): number => {
-    let stack: number[] = [];
-
+    const stack: number[] = [];
     tokens.forEach(token => {
-        if (Number(token)) {
-            stack.push(Number(token));
+        const tokenAsInt = parseInt(token);
+        if (!isNaN(tokenAsInt)) {
+            stack.push(tokenAsInt);
         } else {
             if (stack.length < 2) {
                 throw new Error("Недостаточно операндов!");
             }
 
-            let num2: number = stack.pop()!;
-            let num1: number = stack.pop()!;
+            const num2: number = stack.pop()!;
+            const num1: number = stack.pop()!;
 
-            try {
-                stack.push(executeOperator(num1, num2, token));
-            } catch (error) {
-                console.log(error);
-            }            
+            stack.push(executeOperator(num1, num2, token));
         }
     });
 
@@ -130,16 +133,16 @@ const calc = (expr: string): number => {
 
     try {
         tokens = extractTokens(expr);
-        let postFixExpr: string = prefixToPostfix(tokens!);
-        tokens = extractTokens(postFixExpr);
+        tokens = extractTokens(prefixToPostfix(tokens!));
         res = calculatePostfix(tokens);
     } catch (error) {
-        console.log(error);
+        console.log(error.message);
     }
     return res!;
 }
 
 console.log(calc("+ 3 4"));
-console.log(calc("*(- 5 6) 7"));
+console.log(calc("* 7 (- 5 6) "));
+console.log(calc("* (* 1 - 0 1) 2"));
 
 export {};

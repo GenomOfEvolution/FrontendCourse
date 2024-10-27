@@ -1,15 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var operationPriority = new Map([
-    ['+', 1],
-    ['-', 1],
-    ['*', 2],
-    ['/', 2],
-]);
 var extractTokens = function (inputString) {
     var chars = inputString.split('');
-    var currentNumber = '';
     var tokens = [];
+    var currentNumber = '';
     chars.forEach(function (char, index) {
         if (/\d/.test(char)) {
             currentNumber += char;
@@ -19,7 +13,7 @@ var extractTokens = function (inputString) {
                 tokens.push(currentNumber);
                 currentNumber = '';
             }
-            if (/\s/.test(char)) {
+            if (char === " ") {
                 return;
             }
             if (!/[()*/+\-]/.test(char)) {
@@ -33,48 +27,48 @@ var extractTokens = function (inputString) {
     }
     return tokens;
 };
+var processOperation = function (operatorStack, expressionStack) {
+    var curOper = operatorStack.pop();
+    var operand1 = expressionStack.pop();
+    var operand2 = expressionStack.pop();
+    var newExpr = operand1 + " " + operand2 + " " + curOper;
+    expressionStack.push(newExpr);
+};
 var prefixToPostfix = function (tokens) {
     var operatorStack = [];
     var expressionStack = [];
     tokens = tokens.reverse();
     var index = 0;
     tokens.forEach(function (token) {
-        if (Number(token)) {
+        if (!isNaN(parseInt(token))) {
             expressionStack.push(token);
+            return;
         }
-        else if (token === ")") {
+        if (token === ")") {
             operatorStack.push(token);
+            return;
         }
-        else if (token === "(") {
+        if (token === "(") {
             var curOper = "";
             while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== ")") {
                 if (expressionStack.length < 2) {
                     throw new Error("\u041D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0435 \u0432\u044B\u0440\u0430\u0436\u0435\u043D\u0438\u0435: \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u043E\u043F\u0435\u0440\u0430\u043D\u0434\u043E\u0432 \u0434\u043B\u044F \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u0438 \u043D\u0430 \u043F\u043E\u0437\u0438\u0446\u0438\u0438 ".concat(tokens.length - index));
                 }
-                curOper = operatorStack.pop();
-                var operand1 = expressionStack.pop();
-                var operand2 = expressionStack.pop();
-                var newExpr = operand1 + " " + operand2 + " " + curOper;
-                expressionStack.push(newExpr);
+                processOperation(operatorStack, expressionStack);
             }
             if (operatorStack.length === 0) {
                 throw new Error("\u041D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0435 \u0432\u044B\u0440\u0430\u0436\u0435\u043D\u0438\u0435: \u043D\u0435\u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0435 \u0441\u043A\u043E\u0431\u043E\u043A \u043D\u0430 \u043F\u043E\u0437\u0438\u0446\u0438\u0438 ".concat(tokens.length - index));
             }
             operatorStack.pop();
+            return;
         }
-        else {
-            operatorStack.push(token);
-        }
+        operatorStack.push(token);
     });
     while (operatorStack.length > 0) {
         if (expressionStack.length < 2) {
             throw new Error("Неправильное выражение: недостаточно операндов для операции в конце выражения");
         }
-        var curOper = operatorStack.pop();
-        var operand1 = expressionStack.pop();
-        var operand2 = expressionStack.pop();
-        var newExpr = operand1 + " " + operand2 + " " + curOper;
-        expressionStack.push(newExpr);
+        processOperation(operatorStack, expressionStack);
     }
     return expressionStack.pop();
 };
@@ -98,8 +92,9 @@ var executeOperator = function (num1, num2, oper) {
 var calculatePostfix = function (tokens) {
     var stack = [];
     tokens.forEach(function (token) {
-        if (Number(token)) {
-            stack.push(Number(token));
+        var tokenAsInt = parseInt(token);
+        if (!isNaN(tokenAsInt)) {
+            stack.push(tokenAsInt);
         }
         else {
             if (stack.length < 2) {
@@ -107,12 +102,7 @@ var calculatePostfix = function (tokens) {
             }
             var num2 = stack.pop();
             var num1 = stack.pop();
-            try {
-                stack.push(executeOperator(num1, num2, token));
-            }
-            catch (error) {
-                console.log(error);
-            }
+            stack.push(executeOperator(num1, num2, token));
         }
     });
     return stack.pop();
@@ -122,14 +112,14 @@ var calc = function (expr) {
     var tokens;
     try {
         tokens = extractTokens(expr);
-        var postFixExpr = prefixToPostfix(tokens);
-        tokens = extractTokens(postFixExpr);
+        tokens = extractTokens(prefixToPostfix(tokens));
         res = calculatePostfix(tokens);
     }
     catch (error) {
-        console.log(error);
+        console.log(error.message);
     }
     return res;
 };
 console.log(calc("+ 3 4"));
-console.log(calc("*(- 5 6) 7"));
+console.log(calc("* 7 (- 5 6) "));
+console.log(calc("* (* 1 - 0 1) 2"));
